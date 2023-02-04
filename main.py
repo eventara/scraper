@@ -11,6 +11,7 @@ import google.cloud.logging
 from google.cloud import storage
 from slugify import slugify
 import json
+import concurrent.futures
 
 try:
     log_client = google.cloud.logging.Client()
@@ -33,15 +34,15 @@ client = storage.Client.from_service_account_info(service_account_info)
 BUCKET_NAME = 'eventara-images'
 bucket = client.bucket(BUCKET_NAME)
 
-def save_to_gcs(image_url, id):
-    image_content = requests.get(image_url).content
+def update_image_url(doc):
+    image_content = requests.get(doc['image_url']).content
 
-    blob = bucket.blob(f"posts/{date.today().year}-{date.today().month}/{id}.jpg")
+    blob = bucket.blob(f"posts/{date.today().year}-{date.today().month}/{doc['_id']}.jpg")
     blob.upload_from_string(image_content, content_type='image/jpeg')
     blob.cache_control = 'public, max-age=31536000'
     blob.make_public()
 
-    return blob.public_url
+    doc['image_url'] = blob.public_url
 
 def get_instagramaccounts():
     instagramaccount_collection = db['instagramaccounts']
@@ -74,11 +75,13 @@ def upsert_docs(post_docs):
 
     to_be_inserted = []
 
-    # parallel upload and download
     for doc in post_docs:
         if doc['_id'] not in id_set:
-            doc['image_url'] = save_to_gcs(doc['image_url'], doc['_id'])
             to_be_inserted.append(doc)
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(update_image_url, doc) for doc in to_be_inserted]
+        concurrent.futures.wait(futures)
 
     if to_be_inserted:
         post_collection.insert_many(to_be_inserted)
@@ -99,7 +102,7 @@ def get_edges(username):
     return edges
 
 def get_slug(caption: str, id: str):
-    return f"{slugify(caption, max_length=40)}-{id}"
+    return f"{slugify(text=caption, max_length=40)}-{id}"
 
 def get_title(caption: str):
     result = ""    
