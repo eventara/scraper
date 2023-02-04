@@ -79,7 +79,7 @@ def upsert_docs(post_docs):
         if doc['_id'] not in id_set:
             to_be_inserted.append(doc)
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
         futures = [executor.submit(update_image_url, doc) for doc in to_be_inserted]
         concurrent.futures.wait(futures)
 
