@@ -176,6 +176,10 @@ def scraper():
         retries = 5
     app.logger.info("Scraper finished scraping!")
 
+@app.route("/active")
+def active():
+    return '<br />'.join([t.name for t in threading.enumerate()])
+
 
 @app.route("/trigger")
 def trigger():
