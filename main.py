@@ -30,6 +30,9 @@ service_account_info = json.loads(os.environ.get("GCP_SERVICE_ACCOUNT"))
 TWELVE_HOURS = 12*60*60
 
 client = storage.Client.from_service_account_info(service_account_info)
+adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
+client._http.mount("https://", adapter)
+client._http._auth_request.session.mount("https://", adapter)
 
 BUCKET_NAME = 'eventara-images'
 bucket = client.bucket(BUCKET_NAME)
