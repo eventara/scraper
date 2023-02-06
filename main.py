@@ -114,7 +114,7 @@ def get_title(caption: str):
     return result
 
 def get_implicit_value(caption: str):
-    hotwords = ['zoom', 'sat', 'http', 'bit.ly', 'line', 'wa', 'cp', 'contact', 'seminar', 'talk', 'show', 'daftar', 'regist', 'form', ':', '"']
+    hotwords = ['zoom', 'sat', 'http', 'bit', 'ly', 'line', 'wa', 'cp', 'contact', 'seminar', 'talk', 'show', 'daftar', 'regist', 'form', ':', 'certificate', 'workshop', 'point', 'event', 'meeting', 'webinar', 'acara', 'benefit', 'speaker', 'tema', 'topik', 'comserv']
     tokens = caption.lower().split()
     cleaned = ' '.join([token for token in tokens if token[0] != '#'])
     implicit_value = 0
