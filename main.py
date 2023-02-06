@@ -105,7 +105,7 @@ def get_edges(username):
     return edges
 
 def get_slug(caption: str, id: str):
-    return f"{slugify(text=caption, max_length=40)}-{id}"
+    return slugify(text=caption, max_length=40)
 
 def get_title(caption: str):
     result = ""    
