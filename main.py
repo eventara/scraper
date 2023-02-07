@@ -125,8 +125,8 @@ def get_implicit_value(caption: str):
     return implicit_value
 
 def get_initial_score(implicit_value: int, posted_at: datetime):
-    duration = (datetime.now() - posted_at).total_seconds() // (2 * 24 * 3600)
-    return (implicit_value + 1)/((duration + 2)**1.8)
+    duration = (datetime.now() - posted_at).total_seconds() // (4 * 3600)
+    return (implicit_value**2 + 1)/((duration + 2)**1.8)
 
 def scraper():
     instagramaccounts = get_instagramaccounts()
