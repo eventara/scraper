@@ -76,10 +76,16 @@ def upsert_docs(post_docs):
 
     id_set = set([post['_id'] for post in posts])
 
+    # logic to find if md5 exists
+    # logic to also consider the current post_docs about to be inserted doesn't contain duplicate
+
     to_be_inserted = []
 
     for doc in post_docs:
-        if doc['_id'] not in id_set:
+        # add check md5
+        if doc['_id'] not in id_set and doc['implicit_value'] >= 6:
+            del doc['implicit_value']
+            # remove md5 value
             to_be_inserted.append(doc)
 
     with concurrent.futures.ThreadPoolExecutor(max(len(to_be_inserted), 1)) as executor:
@@ -88,6 +94,7 @@ def upsert_docs(post_docs):
 
     if to_be_inserted:
         post_collection.insert_many(to_be_inserted)
+        # logic to save md5 hash
 
     app.logger.info("Inserted {} posts!".format(len(to_be_inserted)))
 
@@ -124,9 +131,9 @@ def get_implicit_value(caption: str):
     
     return implicit_value
 
-def get_initial_score(implicit_value: int, posted_at: datetime):
+def get_initial_score(posted_at: datetime):
     duration = (datetime.now() - posted_at).total_seconds() // (4 * 3600)
-    return (implicit_value**2 + 1)/((duration + 2)**1.8)
+    return 1/((duration + 2)**1.8)
 
 def scraper():
     instagramaccounts = get_instagramaccounts()
@@ -166,10 +173,11 @@ def scraper():
                 'title': get_title(caption),
                 'description': caption,
                 'image_url': post['display_url'],
+                'user': 'vd6WfRXDKEal94dQ8OMaSe5v00c2',
                 'implicit_value': implicit_value,
-                'score': get_initial_score(implicit_value, posted_at),
-                'posted_at': posted_at,
-                'fetched_at': datetime.utcnow().replace(microsecond=0)
+                'score': get_initial_score(posted_at),
+                'created_at': posted_at,
+                'updated_at': posted_at
             })
 
         upsert_docs(post_docs)
