@@ -12,6 +12,7 @@ from google.cloud import storage
 from slugify import slugify
 import json
 import concurrent.futures
+import textwrap
 
 try:
     log_client = google.cloud.logging.Client()
@@ -111,14 +112,12 @@ def get_edges(username):
     edges = result['graphql']['user']['edge_owner_to_timeline_media']['edges']
     return edges
 
-def get_slug(caption: str, id: str):
-    return slugify(text=caption, max_length=40)
+def get_slug(caption: str):
+    text = textwrap.shorten(caption, width=40, placeholder="")
+    return slugify(text=text)
 
 def get_title(caption: str):
-    result = ""    
-    trimmed_caption = ' '.join(caption[:150].split())
-    result += trimmed_caption
-    return result
+    return textwrap.shorten(caption, width=120, placeholder="")
 
 def get_implicit_value(caption: str):
     hotwords = ['zoom', 'sat', 'http', 'bit', 'ly', 'line', 'wa', 'cp', 'contact', 'seminar', 'talk', 'show', 'daftar', 'regist', 'form', ':', 'certificate', 'workshop', 'point', 'event', 'meeting', 'webinar', 'acara', 'benefit', 'speaker', 'tema', 'topik', 'comserv']
@@ -169,7 +168,7 @@ def scraper():
             posted_at = datetime.utcfromtimestamp(post['taken_at_timestamp'])
             post_docs.append({
                 '_id': post['shortcode'],
-                'slug': get_slug(caption, post['shortcode']),
+                'slug': get_slug(caption),
                 'title': get_title(caption),
                 'description': caption,
                 'image_url': post['display_url'],
