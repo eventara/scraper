@@ -26,6 +26,8 @@ client = MongoClient(os.environ.get("MONGODB_URI"))
 proxy = os.environ.get("PROXY_URI")
 db = client['db']
 
+service_uri = os.environ.get("SERVICE_URI")
+verify_token = os.environ.get("VERIFY_TOKEN")
 service_account_info = json.loads(os.environ.get("GCP_SERVICE_ACCOUNT"))
 
 TWELVE_HOURS = 12*60*60
@@ -68,25 +70,12 @@ def update_instagramaccount_timestamp(username):
         }
     )
 
-
 def upsert_docs(post_docs):
-    post_collection = db['posts']
-
-    ids = [doc['_id'] for doc in post_docs]
-    posts = post_collection.find({'_id': {'$in': ids}})
-
-    id_set = set([post['_id'] for post in posts])
-
-    # logic to find if md5 exists
-    # logic to also consider the current post_docs about to be inserted doesn't contain duplicate
-
     to_be_inserted = []
 
     for doc in post_docs:
-        # add check md5
-        if doc['_id'] not in id_set and doc['implicit_value'] >= 6:
+        if doc['implicit_value'] >= 6:
             del doc['implicit_value']
-            # remove md5 value
             to_be_inserted.append(doc)
 
     with concurrent.futures.ThreadPoolExecutor(max(len(to_be_inserted), 1)) as executor:
@@ -94,11 +83,13 @@ def upsert_docs(post_docs):
         concurrent.futures.wait(futures)
 
     if to_be_inserted:
-        post_collection.insert_many(to_be_inserted)
-        # logic to save md5 hash
+        # logic to push to service
+        requests.post('{}/api/posts'.format(service_uri), json={
+            "verify_token": verify_token,
+            "posts": to_be_inserted
+        })
 
     app.logger.info("Inserted {} posts!".format(len(to_be_inserted)))
-
 
 def get_edges(username):
     url = "https://www.instagram.com/{}/?__a=1&__d={}".format(
@@ -111,10 +102,6 @@ def get_edges(username):
     result = r.json()
     edges = result['graphql']['user']['edge_owner_to_timeline_media']['edges']
     return edges
-
-def get_slug(caption: str):
-    text = textwrap.shorten(caption, width=40, placeholder="")
-    return slugify(text=text)
 
 def get_title(caption: str):
     return textwrap.shorten(caption, width=120, placeholder="")
@@ -129,10 +116,6 @@ def get_implicit_value(caption: str):
             implicit_value += 1
     
     return implicit_value
-
-def get_initial_score(posted_at: datetime):
-    duration = (datetime.now() - posted_at).total_seconds() // (4 * 3600)
-    return 1/((duration + 2)**1.8)
 
 def scraper():
     instagramaccounts = get_instagramaccounts()
@@ -167,16 +150,13 @@ def scraper():
             implicit_value = get_implicit_value(caption)
             posted_at = datetime.utcfromtimestamp(post['taken_at_timestamp'])
             post_docs.append({
-                '_id': post['shortcode'],
-                'slug': get_slug(caption),
                 'title': get_title(caption),
                 'description': caption,
                 'image_url': post['display_url'],
-                'user': 'vd6WfRXDKEal94dQ8OMaSe5v00c2',
+                'user_id': 'vd6WfRXDKEal94dQ8OMaSe5v00c2',
+                'created_at': posted_at.isoformat(),
+                'updated_at': posted_at.isoformat(),
                 'implicit_value': implicit_value,
-                'score': get_initial_score(posted_at),
-                'created_at': posted_at,
-                'updated_at': posted_at
             })
 
         upsert_docs(post_docs)
