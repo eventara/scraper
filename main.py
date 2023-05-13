@@ -150,6 +150,7 @@ def scraper():
             implicit_value = get_implicit_value(caption)
             posted_at = datetime.utcfromtimestamp(post['taken_at_timestamp'])
             post_docs.append({
+                '_id': post['shortcode'],
                 'title': get_title(caption),
                 'description': caption,
                 'image_url': post['display_url'],
