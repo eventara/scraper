@@ -132,8 +132,10 @@ def scraper():
             edges = get_edges(instagramaccounts[i]['username'])
         except Exception as e:
             if retries == 0:
-                app.logger.info("Reached maximum retries! Stopping scraper!")
-                break
+                app.logger.info("Reached maximum retries! Skipping account!")
+                i += 1
+                retries = 5
+                continue
             app.logger.info("Error getting user medias: {}".format(e))
             app.logger.info("Retrying...")
             retries -= 1
