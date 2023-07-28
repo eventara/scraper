@@ -87,7 +87,7 @@ def upsert_docs(post_docs):
         requests.post('{}/api/posts'.format(service_uri), json={
             "verify_token": verify_token,
             "posts": to_be_inserted
-        })
+        }, verify=False)
 
     app.logger.info("Inserted {} posts!".format(len(to_be_inserted)))
 
